@@ -1,0 +1,33 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "apiProfile": "2019-07-01-profile",
+    "parameters": { 
+        "virtualNetwork":{
+            "type": "object",
+            "defaultValue": {
+                "name": "Lab",
+                "subnetName": "Lab",
+                "resourceGroup": "Hub"
+            }
+        }
+     },
+    "variables": {  },
+    "functions": [  ],
+    "resources": [  ],
+    "outputs": { 
+        "existingSubnetId":{
+            "type": "string",
+            "value": "[resourceId(parameters('virtualNetwork').resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnetName)]"
+        },
+        "existingSubnetObject":{
+            "type": "object",
+            "value": "[reference(resourceId(parameters('virtualNetwork').resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnetName), '2019-08-01')]"
+        },
+        "existingSubnetObjectByRef":{
+            "type": "object",
+            "value": "[reference(concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetwork').name, '/subnets/', parameters('virtualNetwork').subnetName), '2019-08-01')]"
+        }
+    }
+  }
+  
