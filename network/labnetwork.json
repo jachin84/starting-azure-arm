@@ -1,0 +1,78 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "apiProfile": "2017-03-09-profile",
+    "parameters": {
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location for all resources."
+            }
+        }
+    },
+    "variables": {
+        "gatewaySubnets": [
+            {
+                "name": "GatewaySubnet",
+                "addressPrefix": "10.10.254.0/27"
+            },
+            {
+                "name": "AzureBastionSubnet",
+                "addressPrefix": "10.10.254.32/27"
+            },
+            {
+                "name": "AzureFirewallSubnet",
+                "addressPrefix": "10.10.254.64/27"
+            }
+    ],
+    "copy": [
+        {
+            "name": "labSubnets",
+            "count": 8,
+            "input": {
+                "name": "[concat('LAB0',copyIndex('labSubnets', 1))]",
+                "addressPrefix": "[concat('10.10.',mul(32,copyIndex('labSubnets')),'.0/27')]"
+            }
+        }
+    ],
+    "virtualNetwork": {
+        "name": "Lab",
+        "addressPrefixes": [
+            "10.10.0.0/16"
+        ],
+        "subnets": "[concat(variables('gatewaySubnets'), variables('labSubnets'))]"
+    }
+},
+"functions": [],
+"resources": [
+    {
+        "type": "Microsoft.Network/virtualNetworks",
+        "name": "[variables('virtualNetwork').name]",
+        "location": "[parameters('location')]",
+        "properties": {
+            "addressSpace": {
+                "addressPrefixes": "[variables('virtualNetwork').addressPrefixes]"
+            },
+            "copy": [
+                {
+                    "name": "subnets",
+                    "count": "[length(variables('virtualNetwork').subnets)]",
+                    "input": {
+                        "name": "[variables('virtualNetwork').subnets[copyIndex('subnets')].name]",
+                        "properties": {
+                            "addressPrefix": "[variables('virtualNetwork').subnets[copyIndex('subnets')].addressPrefix]"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+],
+"outputs": {
+    "labSubnets": {
+        "type": "object",
+        "value": "[variables('virtualNetwork')]"
+    }
+}
+}
