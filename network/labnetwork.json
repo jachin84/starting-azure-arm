@@ -9,6 +9,13 @@
             "metadata": {
                 "description": "Location for all resources."
             }
+        },
+        "workspaceId": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Azure Resource ID of the Log Analytics workspace for the Log Analytics workspace to which logs will be sent."
+            }
         }
     },
     "variables": {
@@ -25,54 +32,79 @@
                 "name": "AzureFirewallSubnet",
                 "addressPrefix": "10.10.254.64/27"
             }
-    ],
-    "copy": [
-        {
-            "name": "labSubnets",
-            "count": 8,
-            "input": {
-                "name": "[concat('LAB0',copyIndex('labSubnets', 1))]",
-                "addressPrefix": "[concat('10.10.',mul(32,copyIndex('labSubnets')),'.0/27')]"
-            }
-        }
-    ],
-    "virtualNetwork": {
-        "name": "Lab",
-        "addressPrefixes": [
-            "10.10.0.0/16"
         ],
-        "subnets": "[concat(variables('gatewaySubnets'), variables('labSubnets'))]"
-    }
-},
-"functions": [],
-"resources": [
-    {
-        "type": "Microsoft.Network/virtualNetworks",
-        "name": "[variables('virtualNetwork').name]",
-        "location": "[parameters('location')]",
-        "properties": {
-            "addressSpace": {
-                "addressPrefixes": "[variables('virtualNetwork').addressPrefixes]"
-            },
-            "copy": [
-                {
-                    "name": "subnets",
-                    "count": "[length(variables('virtualNetwork').subnets)]",
-                    "input": {
-                        "name": "[variables('virtualNetwork').subnets[copyIndex('subnets')].name]",
-                        "properties": {
-                            "addressPrefix": "[variables('virtualNetwork').subnets[copyIndex('subnets')].addressPrefix]"
+        "copy": [
+            {
+                "name": "labSubnets",
+                "count": 8,
+                "input": {
+                    "name": "[concat('LAB0',copyIndex('labSubnets', 1))]",
+                    "addressPrefix": "[concat('10.10.',mul(32,copyIndex('labSubnets')),'.0/27')]"
+                }
+            }
+        ],
+        "virtualNetwork": {
+            "name": "Lab",
+            "addressPrefixes": [
+                "10.10.0.0/16"
+            ],
+            "subnets": "[concat(variables('gatewaySubnets'), variables('labSubnets'))]"
+        }
+    },
+    "functions": [],
+    "resources": [
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[variables('virtualNetwork').name]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": "[variables('virtualNetwork').addressPrefixes]"
+                },
+                "copy": [
+                    {
+                        "name": "subnets",
+                        "count": "[length(variables('virtualNetwork').subnets)]",
+                        "input": {
+                            "name": "[variables('virtualNetwork').subnets[copyIndex('subnets')].name]",
+                            "properties": {
+                                "addressPrefix": "[variables('virtualNetwork').subnets[copyIndex('subnets')].addressPrefix]"
+                            }
                         }
+                    }
+                ]
+            },
+            "resources": [
+                {
+                    "type": "providers/diagnosticSettings",
+                    "name": "[concat('Microsoft.Insights/', 'ToLogAnalytics')]",
+                    "condition": "[not(empty(parameters('workspaceId')))]",
+                    "dependsOn": [
+                        "[variables('virtualNetwork').name]"
+                    ],
+                    "apiVersion": "2017-05-01-preview",
+                    "properties": {
+                        "name": "ToLogAnalytics",
+                        "workspaceId": "[parameters('workspaceId')]",
+                        "metrics": [
+                            {
+                                "timeGrain": "PT1M",
+                                "enabled": true,
+                                "retentionPolicy": {
+                                    "enabled": false,
+                                    "days": 0
+                                }
+                            }
+                        ]
                     }
                 }
             ]
         }
+    ],
+    "outputs": {
+        "labSubnets": {
+            "type": "object",
+            "value": "[variables('virtualNetwork')]"
+        }
     }
-],
-"outputs": {
-    "labSubnets": {
-        "type": "object",
-        "value": "[variables('virtualNetwork')]"
-    }
-}
 }
